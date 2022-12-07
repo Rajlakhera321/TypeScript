@@ -1,28 +1,29 @@
 const csvtojson = require("csvtojson");
-const {db} = require("./db")
 const XLSX = require("xlsx")
+const db = require("./models")
+const excel = db.excel
+const path = require("path")
+const fs = require("fs")
 
 const addData = async (req, res) => {
     try {
         const fileData = req.file
         if (fileData.originalname.includes('csv')) {
-            csvtojson().fromFile(fileData.originalname).then(source => {
+            csvtojson().fromFile(fileData.path).then(source => {
                 for (var i = 0; i < source.length; i++) {
-                    var Name = source[i]["Name"]
-                    var Age = source[i]["Age"]
-                    var Email = source[i]["Email"]
-                    var Password = source[i]["Password"]
-                    console.log(Name, Age, Email, Password)
-                    var insertData = `INSERT INTO excel(Name,Age,Email,Password) VALUES(?,?,?,?)`;
-                    var items = [Name, Age, Email, Password];
-                    db.query(insertData, items, (err, result, fields) => {
-                        if (err) {
-                            console.log(err, "Unable to insert data in Database");
-                        } else {
-                            console.log("added successfully", result)
-                        }
+                    var name = source[i]["Name"]
+                    var age = source[i]["Age"]
+                    var email = source[i]["Email"]
+                    var password = source[i]["Password"]
+                    excel.create({
+                        name,
+                        email,
+                        age,
+                        password
                     })
                 }
+                const url = path.resolve('uploads', fileData.filename)
+                fs.unlinkSync(url)
             })
             return res.status(201).json({message: "CSV Data Successfully Inserted"});
         }
@@ -35,17 +36,16 @@ const addData = async (req, res) => {
             x++;
         })
         for (let i of xlsxData) {
-            const data = [i.Name, i.Age, i.Email, i.Password]
-            console.log(data);
-            var insertData = `INSERT INTO excel(Name,Age,Email,Password) VALUES (?,?,?,?)`;
-            db.query(insertData, data, (err, result, fields) => {
-                if (err) {
-                    console.log(err);
-                } else {
-                    console.log(result);
-                }
+            const [name,age,email,password] = [i.Name, i.Age, i.Email, i.Password]
+            await excel.create({
+                name,
+                age,
+                email,
+                password
             })
         }
+        const url = path.resolve('uploads', fileData.filename)
+        await fs.unlinkSync(url)
         return res.status(201).json({message: "Excel Data Added Successfully"})
     } catch (error) {
         console.log(error)
@@ -55,16 +55,10 @@ const addData = async (req, res) => {
 
 const getData = async (req, res) => {
     try {
-        var insertData = `select distinct(Name),Age,Email from excel where email!=' ' `;
-        db.query(insertData, (err, result, fields) => {
-            if (err) {
-                console.log(err);
-                return res.status(404).json({message: "something went wrong"})
-            } else {
-                return res.status(200).json({message: "Data fetched successfully", result})
-            }
-        })
+        const data = await excel.findAll({})
+        res.status(200).json({message: data})
     } catch (error) {
+        console.log(error);
         return res.status(500).json({message: "Internal Server Error"})
     }
 }

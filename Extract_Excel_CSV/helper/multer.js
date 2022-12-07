@@ -14,7 +14,7 @@ const imageUpload = multer({
         fileSize: 5000000 // 1000000 Bytes = 1 MB
     },
     fileFilter(req, file, cb) {
-        if (!file.originalname.match(/\.(xlsx|csv)$/)) { // upload only png and jpg format
+        if (!file.originalname.match(/\.(xlsx|xls|csv)$/)) { // upload only png and jpg format
             return cb(new Error('Please upload a xlsx and csv Image'))
         }
         cb(undefined, true)
