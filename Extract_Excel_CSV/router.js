@@ -7,4 +7,6 @@ router.post("/",multer.imageUpload.single('file'), controller.addData);
 
 router.get("/", controller.getData);
 
+router.get("/:id", controller.getDataById);
+
 module.exports = router;
